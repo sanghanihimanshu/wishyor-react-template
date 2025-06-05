@@ -16,15 +16,36 @@ import { Route as rootRoute } from './routes/__root'
 
 // Create Virtual Routes
 
+const AuthLazyImport = createFileRoute('/auth')()
 const IndexLazyImport = createFileRoute('/')()
+const AuthOtpLazyImport = createFileRoute('/auth/otp')()
+const AuthLoginLazyImport = createFileRoute('/auth/login')()
 
 // Create/Update Routes
+
+const AuthLazyRoute = AuthLazyImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/auth.lazy').then((d) => d.Route))
 
 const IndexLazyRoute = IndexLazyImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
+
+const AuthOtpLazyRoute = AuthOtpLazyImport.update({
+  id: '/otp',
+  path: '/otp',
+  getParentRoute: () => AuthLazyRoute,
+} as any).lazy(() => import('./routes/auth/otp.lazy').then((d) => d.Route))
+
+const AuthLoginLazyRoute = AuthLoginLazyImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthLazyRoute,
+} as any).lazy(() => import('./routes/auth/login.lazy').then((d) => d.Route))
 
 // Populate the FileRoutesByPath interface
 
@@ -37,39 +58,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLazyImport
       parentRoute: typeof rootRoute
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginLazyImport
+      parentRoute: typeof AuthLazyImport
+    }
+    '/auth/otp': {
+      id: '/auth/otp'
+      path: '/otp'
+      fullPath: '/auth/otp'
+      preLoaderRoute: typeof AuthOtpLazyImport
+      parentRoute: typeof AuthLazyImport
+    }
   }
 }
 
 // Create and export the route tree
 
+interface AuthLazyRouteChildren {
+  AuthLoginLazyRoute: typeof AuthLoginLazyRoute
+  AuthOtpLazyRoute: typeof AuthOtpLazyRoute
+}
+
+const AuthLazyRouteChildren: AuthLazyRouteChildren = {
+  AuthLoginLazyRoute: AuthLoginLazyRoute,
+  AuthOtpLazyRoute: AuthOtpLazyRoute,
+}
+
+const AuthLazyRouteWithChildren = AuthLazyRoute._addFileChildren(
+  AuthLazyRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
+  '/auth': typeof AuthLazyRouteWithChildren
+  '/auth/login': typeof AuthLoginLazyRoute
+  '/auth/otp': typeof AuthOtpLazyRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
+  '/auth': typeof AuthLazyRouteWithChildren
+  '/auth/login': typeof AuthLoginLazyRoute
+  '/auth/otp': typeof AuthOtpLazyRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
+  '/auth': typeof AuthLazyRouteWithChildren
+  '/auth/login': typeof AuthLoginLazyRoute
+  '/auth/otp': typeof AuthOtpLazyRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/auth' | '/auth/login' | '/auth/otp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/auth' | '/auth/login' | '/auth/otp'
+  id: '__root__' | '/' | '/auth' | '/auth/login' | '/auth/otp'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
+  AuthLazyRoute: typeof AuthLazyRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
+  AuthLazyRoute: AuthLazyRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -82,11 +149,27 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/"
+        "/",
+        "/auth"
       ]
     },
     "/": {
       "filePath": "index.lazy.tsx"
+    },
+    "/auth": {
+      "filePath": "auth.lazy.tsx",
+      "children": [
+        "/auth/login",
+        "/auth/otp"
+      ]
+    },
+    "/auth/login": {
+      "filePath": "auth/login.lazy.tsx",
+      "parent": "/auth"
+    },
+    "/auth/otp": {
+      "filePath": "auth/otp.lazy.tsx",
+      "parent": "/auth"
     }
   }
 }
